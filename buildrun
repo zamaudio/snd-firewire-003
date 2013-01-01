@@ -1,0 +1,35 @@
+#!/bin/bash
+KVERSION="$(uname -r)"
+set -x
+
+./clean
+make -C /lib/modules/$KVERSION/build M=$PWD modules
+rmmod snd-firewire-dice
+rmmod snd-firewire-digi
+rmmod snd-firewire-lib
+rmmod snd-hwdep
+rmmod snd-pcm
+rmmod snd-seq-midi
+rmmod snd-seq-midi-event
+rmmod snd-seq
+rmmod snd-rawmidi
+rmmod snd-seq-device
+rmmod snd-timer
+rmmod snd
+rmmod soundcore
+rmmod snd-page-alloc
+#rmmod firewire-ohci
+#rmmod firewire-core
+#modprobe firewire-core
+#modprobe firewire-ohci
+#sleep 2
+modprobe snd-page-alloc
+modprobe soundcore
+modprobe snd
+modprobe snd-timer
+modprobe snd-pcm
+modprobe snd_hwdep
+insmod ./snd-firewire-lib.ko
+insmod ./snd-firewire-digi.ko
+sleep 1
+dmesg|tail

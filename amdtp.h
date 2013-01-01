@@ -71,6 +71,7 @@ struct amdtp_stream {
 	struct snd_pcm_substream *pcm;
 
 	int packet_index;
+	u32 cycle;
 	unsigned int data_block_counter;
 
 	unsigned int data_block_state;

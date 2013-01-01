@@ -13,12 +13,14 @@
 #include <linux/slab.h>
 #include <sound/pcm.h>
 #include "amdtp.h"
+#include "digimagic.h"
 
 #define TICKS_PER_CYCLE		3072
 #define CYCLES_PER_SECOND	8000
 #define TICKS_PER_SECOND	(TICKS_PER_CYCLE * CYCLES_PER_SECOND)
 
-#define TRANSFER_DELAY_TICKS	0x2e00 /* 479.17 µs */
+//#define TRANSFER_DELAY_TICKS	0x2e00 /* 479.17 µs */
+#define TRANSFER_DELAY_TICKS	0x2e00 //might need tweaking?
 
 #define TAG_CIP			1
 
@@ -28,8 +30,8 @@
 #define AMDTP_FDF_SFC_SHIFT	16
 
 /* TODO: make these configurable */
-#define INTERRUPT_INTERVAL	16
-#define QUEUE_LENGTH		48
+#define INTERRUPT_INTERVAL	24	
+#define QUEUE_LENGTH		96
 
 /**
  * amdtp_stream_init - initialize an AMDTP stream structure
@@ -45,6 +47,8 @@ int amdtp_stream_init(struct amdtp_stream *s, struct fw_unit *unit,
 	s->context = ERR_PTR(-1);
 	mutex_init(&s->mutex);
 	s->packet_index = 0;
+
+	s->data_block_state = 0;
 
 	return 0;
 }
@@ -126,7 +130,7 @@ sfc_found:
 
 	if (!s->dual_wire)
 		for (i = 0; i < pcm_channels; ++i)
-			s->pcm_quadlets[i] = i;
+			s->pcm_quadlets[i] = i;//DZ
 	else
 		for (i = 0; i < pcm_channels / 2; ++i) {
 			s->pcm_quadlets[i                   ] = 2 * i;
@@ -161,10 +165,32 @@ EXPORT_SYMBOL(amdtp_stream_get_max_payload);
 static unsigned int calculate_data_blocks(struct amdtp_stream *s)
 {
 	unsigned int phase, data_blocks;
+//	unsigned int pattern003_96[6] = { 2, 6, 3, 5, 3, 5 };
 
 	if (!cip_sfc_is_base_44100(s->sfc)) {
 		/* Sample_rate / 8000 is an integer, and precomputed. */
-		data_blocks = s->data_block_state;
+		//non 003: 
+		//data_blocks = s->data_block_state;
+		
+/*		if (s->sfc == CIP_SFC_96000) {
+			phase = s->data_block_state;
+			data_blocks = (11 + (phase % 2) * 3) * pattern003_96[phase];
+			if (++phase >= 6)
+				phase = 0;
+			s->data_block_state = phase;
+
+		} else {  //48000Hz 003 
+*/			phase = s->data_block_state;
+			if (phase >= 16)
+				phase = 0;
+
+			data_blocks = ((phase % 16) > 7) ? 5 : 7;
+			if (++phase >= 16)
+				phase = 0;
+			s->data_block_state = phase;
+//		}
+//		data_blocks = s->data_block_state;
+
 	} else {
 		phase = s->data_block_state;
 
@@ -245,6 +271,7 @@ static void amdtp_write_samples(struct amdtp_stream *s,
 	channels = s->pcm_channels;
 	src = (void *)runtime->dma_area +
 			s->pcm_buffer_pointer * (runtime->frame_bits / 8);
+	
 	remaining_frames = runtime->buffer_size - s->pcm_buffer_pointer;
 	frame_step = s->data_block_quadlets;
 
@@ -254,6 +281,7 @@ static void amdtp_write_samples(struct amdtp_stream *s,
 					cpu_to_be32((*src >> 8) | 0x40000000);
 			src++;
 		}
+		digi_encode(& buffer[s->pcm_quadlets[0]], channels);
 		buffer += frame_step;
 		if (--remaining_frames == 0)
 			src = (void *)runtime->dma_area;
@@ -284,6 +312,93 @@ static void amdtp_fill_midi(struct amdtp_stream *s,
 	}
 }
 
+static void amdtp_fill_midi_as_pcm(struct amdtp_stream *s,
+                            __be32 *buffer, unsigned int frames)
+{
+        unsigned int i, c;
+
+        for (i = 0; i < frames; ++i) {
+                for (c = 0; c < s->midi_data_channels; ++c)
+                        buffer[s->midi_quadlets[c]] = cpu_to_be32(0x40000000);
+                buffer += s->data_block_quadlets;
+        }
+}
+
+static void queue_out_dummy_packet(struct amdtp_stream *s, unsigned int cycle)
+{
+	__be32 *buffer;
+	unsigned int index, data_blocks, syt, ptr;
+	struct snd_pcm_substream *pcm;
+	struct fw_iso_packet packet;
+	int err;
+
+	if (s->packet_index < 0)
+		return;
+	index = s->packet_index;
+
+	syt = calculate_syt(s, cycle);
+	if (!(s->flags & CIP_BLOCKING)) {
+		data_blocks = calculate_data_blocks(s);
+	} else {
+		if (syt != 0xffff) {
+			data_blocks = s->syt_interval;
+		} else {
+			data_blocks = 0;
+			syt = 0xffffff;
+		}
+	}
+
+	buffer = s->buffer.packets[index].buffer;
+	buffer[0] = cpu_to_be32(0x00 << 24 /*ACCESS_ONCE(s->source_node_id_field)*/| 
+				(s->data_block_quadlets << 16) |
+				s->data_block_counter); //dzhack
+	buffer[1] = cpu_to_be32(CIP_EOH | CIP_FMT_AM | AMDTP_FDF_AM824 |
+				(s->sfc << AMDTP_FDF_SFC_SHIFT) ); //| syt);
+	buffer += 2;
+
+	amdtp_fill_pcm_silence(s, buffer, data_blocks);
+	if (s->midi_data_channels > 0)
+		amdtp_fill_midi_as_pcm(s, buffer, data_blocks);
+
+	s->data_block_counter = (s->data_block_counter + data_blocks) & 0xff;
+
+	packet.payload_length = 8 + data_blocks * 4 * s->data_block_quadlets;
+	packet.interrupt = IS_ALIGNED(index + 1, INTERRUPT_INTERVAL);
+	packet.skip = 0;
+	packet.tag = TAG_CIP;
+	packet.sy = 0;
+	packet.header_length = 0;
+
+	err = fw_iso_context_queue(s->context, &packet, &s->buffer.iso_buffer,
+				   s->buffer.packets[index].offset);
+	if (err < 0) {
+		dev_err(&s->unit->device, "queueing error: %d\n", err);
+		s->packet_index = -1;
+		amdtp_stream_pcm_abort(s);
+		return;
+	}
+
+	if (++index >= QUEUE_LENGTH)
+		index = 0;
+	s->packet_index = index;
+
+	if (pcm) {
+		if (s->dual_wire)
+			data_blocks *= 2;
+
+		ptr = s->pcm_buffer_pointer + data_blocks;
+		if (ptr >= pcm->runtime->buffer_size)
+			ptr -= pcm->runtime->buffer_size;
+		ACCESS_ONCE(s->pcm_buffer_pointer) = ptr;
+
+		s->pcm_period_pointer += data_blocks;
+		if (s->pcm_period_pointer >= pcm->runtime->period_size) {
+			s->pcm_period_pointer -= pcm->runtime->period_size;
+			snd_pcm_period_elapsed(pcm);
+		}
+	}
+}
+
 static void queue_out_packet(struct amdtp_stream *s, unsigned int cycle)
 {
 	__be32 *buffer;
@@ -309,16 +424,17 @@ static void queue_out_packet(struct amdtp_stream *s, unsigned int cycle)
 	}
 
 	buffer = s->buffer.packets[index].buffer;
-	buffer[0] = cpu_to_be32(ACCESS_ONCE(s->source_node_id_field) |
+	buffer[0] = cpu_to_be32(0x00 << 24 /*ACCESS_ONCE(s->source_node_id_field)*/| 
 				(s->data_block_quadlets << 16) |
 				s->data_block_counter);
 	buffer[1] = cpu_to_be32(CIP_EOH | CIP_FMT_AM | AMDTP_FDF_AM824 |
-				(s->sfc << AMDTP_FDF_SFC_SHIFT) | syt);
+				(s->sfc << AMDTP_FDF_SFC_SHIFT) ); //dzhack2 | syt);
 	buffer += 2;
 
 	pcm = ACCESS_ONCE(s->pcm);
-	if (pcm)
+	if (pcm) {
 		amdtp_write_samples(s, pcm, buffer, data_blocks);
+	}
 	else
 		amdtp_fill_pcm_silence(s, buffer, data_blocks);
 	if (s->midi_data_channels > 0)
@@ -379,6 +495,7 @@ static void out_packet_callback(struct fw_iso_context *context, u32 cycle,
 	for (i = 0; i < packets; ++i)
 		queue_out_packet(s, ++cycle);
 	fw_iso_context_queue_flush(s->context);
+	s->cycle = cycle;
 }
 
 static int queue_initial_skip_packets(struct amdtp_stream *s)
@@ -400,6 +517,20 @@ static int queue_initial_skip_packets(struct amdtp_stream *s)
 	}
 
 	return 0;
+}
+
+static int queue_initial_dummy_packets(struct amdtp_stream *s) 
+{
+        unsigned int i;
+	
+	unsigned int packets = 96;
+
+        for (i = 0; i < packets; ++i)
+	{
+                queue_out_dummy_packet(s, s->cycle);
+		s->cycle += 1;
+	}
+	fw_iso_context_queue_flush(s->context);
 }
 
 /**
@@ -436,7 +567,7 @@ int amdtp_stream_start(struct amdtp_stream *s, int channel, int speed)
 		goto err_unlock;
 	}
 
-	s->data_block_state = initial_state[s->sfc].data_block;
+	s->data_block_state = 0; //initial_state[s->sfc].data_block;
 	s->syt_offset_state = initial_state[s->sfc].syt_offset;
 	s->last_syt_offset = TICKS_PER_CYCLE;
 
@@ -462,10 +593,16 @@ int amdtp_stream_start(struct amdtp_stream *s, int channel, int speed)
 
 	s->packet_index = 0;
 	s->data_block_counter = 0;
-	err = queue_initial_skip_packets(s);
+//	s->data_block_counter = -38;
+//	err = queue_initial_skip_packets(s);
+//	if (err < 0)
+//		goto err_context;
+
+	s->cycle = 0;
+	err = queue_initial_dummy_packets(s);
 	if (err < 0)
 		goto err_context;
-
+	
 	err = fw_iso_context_start(s->context, -1, 0, 0);
 	if (err < 0)
 		goto err_context;

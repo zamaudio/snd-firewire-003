@@ -1,0 +1,6 @@
+#!/bin/bash
+KVERSION="$(uname -r)"
+set -x
+
+./clean
+make -C /lib/modules/$KVERSION/build M=$PWD modules

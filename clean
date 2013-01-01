@@ -1,0 +1,5 @@
+#!/bin/bash
+KVERSION="$(uname -r)"
+set -x
+
+rm -fr *.o *.ko *.mod.c .*.cmd Module.symvers modules.order .tmp_versions
