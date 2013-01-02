@@ -384,6 +384,7 @@ static void queue_out_dummy_packet(struct amdtp_stream *s, unsigned int cycle)
 		index = 0;
 	s->packet_index = index;
 
+	pcm = ACCESS_ONCE(s->pcm);
 	if (pcm) {
 		if (s->dual_wire)
 			data_blocks *= 2;
@@ -533,6 +534,7 @@ static int queue_initial_dummy_packets(struct amdtp_stream *s)
 		s->cycle += 1;
 	}
 	fw_iso_context_queue_flush(s->context);
+	return 0;
 }
 
 /**
