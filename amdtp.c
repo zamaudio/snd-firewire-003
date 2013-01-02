@@ -267,6 +267,7 @@ static void amdtp_write_samples(struct amdtp_stream *s,
 	struct snd_pcm_runtime *runtime = pcm->runtime;
 	unsigned int channels, remaining_frames, frame_step, i, c;
 	const u32 *src;
+	DigiMagic digistate;
 
 	channels = s->pcm_channels;
 	src = (void *)runtime->dma_area +
@@ -276,12 +277,13 @@ static void amdtp_write_samples(struct amdtp_stream *s,
 	frame_step = s->data_block_quadlets;
 
 	for (i = 0; i < frames; ++i) {
+		digi_state_reset(&digistate);
 		for (c = 0; c < channels; ++c) {
 			buffer[s->pcm_quadlets[c]] =
 					cpu_to_be32((*src >> 8) | 0x40000000);
+			digi_encode_step(&digistate, &buffer[s->pcm_quadlets[c]]);
 			src++;
 		}
-		digi_encode(& buffer[s->pcm_quadlets[0]], channels);
 		buffer += frame_step;
 		if (--remaining_frames == 0)
 			src = (void *)runtime->dma_area;
