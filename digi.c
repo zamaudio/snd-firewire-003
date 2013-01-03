@@ -205,7 +205,7 @@ static inline int poll_until(struct digi *digi, unsigned long long int reg, unsi
 {
 	int timeout = 1024;
 	while (read_quadlet(digi, reg) != expect && --timeout);
-	return ( timeout == 0 )
+	return ( timeout == 0 );
 }
 
 static void rack_init_write_814_block(struct digi *digi)
