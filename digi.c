@@ -207,30 +207,52 @@ static inline int poll_until(struct digi *digi, unsigned long long int reg, unsi
 	return (timeout > 0);
 }
 
+static void rack_init_write_814_block(struct digi *digi)
+{
+/*
+ * write_block_request, offs=0xffffe0000008, data_length=0x0008, extended_tcode=0x0000, data=[ffc2ffff 00000000]
+ * write_block_request, offs=0xffffe0000014, data_length=0x0008, extended_tcode=0x0000, data=[ffc2ffff 00000040]
+ */
+#if 1   /* use transaction */
+	__be32 data[2];
+        data[0] = BYTESWAP32_CONST(0xffc2ffff);
+        data[1] = BYTESWAP32_CONST(0x00000000);
+        snd_fw_transaction(digi->unit, TCODE_WRITE_BLOCK_REQUEST, 0xffffe0000008ULL, &data, 8, 0);
+
+        data[0] = BYTESWAP32_CONST(0xffc2ffff);
+        data[1] = BYTESWAP32_CONST(0x00000040);
+        snd_fw_transaction(digi->unit, TCODE_WRITE_BLOCK_REQUEST, 0xffffe0000014ULL, &data, 8, 0);
+
+#elif 0 /* write two quadlets instead of continuous block */
+
+        write_quadlet(digi, 0xffffe0000008ULL, 0xffc2ffff);
+        write_quadlet(digi, 0xffffe000000cULL, 0x00000000);
+
+        write_quadlet(digi, 0xffffe0000014ULL, 0xffc2ffff);
+        write_quadlet(digi, 0xffffe0000018ULL, 0x00000040);
+#endif
+}
+
 static int rack_init(struct digi *digi)
 {
+	/* sweep read all data regs */
 	int i;
 	for (i=0; i < /* 0x468 */ 0x010; i++) {
 		if (i == 4) continue;
 		read_quadlet(digi, 0xfffff0000400ULL + i);
 	}
+        read_quadlet(digi, 0xfffff0000400ULL);
+
+	/* initialization sequence */
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
         
         write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
-                
-/*        quadlet_t addr[2];
-        addr[0] = htobe32(0xffc2ffff);
-        addr[1] = htobe32(0x00000000);
-        raw1394_write(rh, target_node_id, 0xffffe0000008ULL, 8, addr);
 
-        addr[1] = htobe32(0x00000040);
-        raw1394_write(rh, target_node_id, 0xffffe0000014ULL, 8, addr);
-*/
+	rack_init_write_814_block(digi);
+
         write_quadlet(digi, 0xffffe0000110ULL, 0x00000001);// set samplerate?
-
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000000); // ??
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
 
@@ -239,44 +261,33 @@ static int rack_init(struct digi *digi)
         
         write_quadlet(digi, 0xffffe0000118ULL, 0x00000000); // set clocksrc
 
-        
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streaming
-
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
-        
+
         read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
 
 	write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
 
         write_quadlet(digi, 0xffffe0000124ULL, 0x00000001); //enable midi or low latency?
 
- 	//restart 44.1 only
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000001); // start streaming
-
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
 
 	read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
 
-
-	
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
         
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000003);
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000003)) return -1;
         
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
         
 	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
-                
+
+	rack_init_write_814_block(digi);
 
         write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
 
@@ -284,31 +295,24 @@ static int rack_init(struct digi *digi)
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streaming
-
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
-        
+
         read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
 
         write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
 
 	write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);
-
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000003); // shutdown streaming
-
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000003)) return -1;
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
-
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
 
 	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
-                
+
+	rack_init_write_814_block(digi);
 
         write_quadlet(digi, 0xffffe0000110ULL, 0x00000001);// set samplerate?
 
@@ -316,19 +320,16 @@ static int rack_init(struct digi *digi)
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streaming
-
-
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
-        
+
         read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
 
         write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
-        write_quadlet(digi, 0xffffe0000124ULL, 0x00000000);   // start control
 
-
-
+#if 0
+        //write_quadlet(digi, 0xffffe0000124ULL, 0x00000000);   // start control
 	/* No monitoring of inputs */
-/*	
+
 	write_quadlet(digi, R003_MIX_ANALOG_1L, R003_MIX_NONE); 
 	write_quadlet(digi, R003_MIX_ANALOG_1R, R003_MIX_NONE); 
 	write_quadlet(digi, R003_MIX_ANALOG_2L, R003_MIX_NONE); 
@@ -365,31 +366,27 @@ static int rack_init(struct digi *digi)
 	write_quadlet(digi, R003_MIX_ADAT_7R, R003_MIX_NONE);
 	write_quadlet(digi, R003_MIX_ADAT_8L, R003_MIX_NONE);
 	write_quadlet(digi, R003_MIX_ADAT_8R, R003_MIX_NONE);
-*/
+#endif
 	return 0;
 }
 
 static void rack_shutdown(struct digi *digi)
 {       
-	write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control      
-
+	//write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);   // stop streams       
-
 	poll_until(digi, 0xffffe0000000ULL, 0x00000000);
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streams       
-
 	poll_until(digi, 0xffffe0000000ULL, 0x00000001);
+        write_quadlet(digi, 0xffffe0000118ULL, 0x00000000);
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);   // stop streams       
-
 	poll_until(digi, 0xffffe0000000ULL, 0x00000000);
 
 	write_quadlet(digi, 0xffffe0000004ULL, 0x00000003);   // shutdown streams       
-
 	poll_until(digi, 0xffffe0000000ULL, 0x00000003);
-        
 }       
+
 static int digi_owner_set(struct digi *digi) 
 {                               
         return 0;
