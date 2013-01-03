@@ -1,0 +1,12 @@
+.*.cmd
+*.ko
+*.mod.*
+*.o
+
+.tmp_versions/
+Module.symvers
+modules.order
+
+*.swp
+cscope.*
+tags
