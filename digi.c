@@ -202,6 +202,34 @@ static const unsigned int digi_rates[] = {
 
 static void rack_init(struct digi *digi)
 {
+        read_quadlet(digi, 0xfffff0000400ULL);
+        read_quadlet(digi, 0xfffff0000408ULL);
+        read_quadlet(digi, 0xfffff000040cULL);
+        read_quadlet(digi, 0xfffff0000410ULL);
+/*
+	read_quadlet(digi, 0xfffff0000414ULL);
+        read_quadlet(digi, 0xfffff0000418ULL);
+        read_quadlet(digi, 0xfffff000041cULL);
+        read_quadlet(digi, 0xfffff0000420ULL);
+        read_quadlet(digi, 0xfffff0000424ULL);
+        read_quadlet(digi, 0xfffff0000428ULL);
+        read_quadlet(digi, 0xfffff000042cULL);
+        read_quadlet(digi, 0xfffff0000430ULL);
+        read_quadlet(digi, 0xfffff0000434ULL);
+        read_quadlet(digi, 0xfffff0000438ULL);
+        read_quadlet(digi, 0xfffff000043cULL);
+        read_quadlet(digi, 0xfffff0000440ULL);
+        read_quadlet(digi, 0xfffff0000444ULL);
+        read_quadlet(digi, 0xfffff0000448ULL);
+        read_quadlet(digi, 0xfffff000044cULL);
+        read_quadlet(digi, 0xfffff0000450ULL);
+        read_quadlet(digi, 0xfffff0000454ULL);
+        read_quadlet(digi, 0xfffff0000458ULL);
+        read_quadlet(digi, 0xfffff000045cULL);
+        read_quadlet(digi, 0xfffff0000460ULL);
+        read_quadlet(digi, 0xfffff0000464ULL);
+        read_quadlet(digi, 0xfffff0000468ULL);
+*/
         unsigned int isoctrl;
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
         int ct = 0;
@@ -226,8 +254,8 @@ static void rack_init(struct digi *digi)
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000000); // ??
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
 
-//        write_quadlet(digi, 0xffffe000011cULL, 0x00000000); //use for x44.1?
-//        write_quadlet(digi, 0xffffe0000120ULL, 0x00000003); //use for x44.1?
+        write_quadlet(digi, 0xffffe000011cULL, 0x00000000); //use for x44.1?
+        write_quadlet(digi, 0xffffe0000120ULL, 0x00000003); //use for x44.1?
         
         write_quadlet(digi, 0xffffe0000118ULL, 0x00000000); // set clocksrc
 
@@ -266,9 +294,107 @@ static void rack_init(struct digi *digi)
         }
 
 	read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
+
+
+
 	
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000000 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+        
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000003);
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000003 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+        
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000000 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+        
+	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
+                
+
+        write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
+
+        write_quadlet(digi, 0xffffe0000100ULL, 0x00000000); // ??
+        write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
+
+        isoctrl = 0x00000001;
+        write_quadlet(digi, 0xffffe0000004ULL, isoctrl);   // start streaming
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000001 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+        
+        read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
+
+        write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
+
+	isoctrl = 0x00000000;
+	write_quadlet(digi, 0xffffe0000004ULL, isoctrl);
+	ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000000 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+
+        isoctrl = 0x00000003;
+        write_quadlet(digi, 0xffffe0000004ULL, isoctrl); // shutdown streaming
+	ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000003 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000000 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+
+	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
+                
+
+        write_quadlet(digi, 0xffffe0000110ULL, 0x00000001);// set samplerate?
+
+        write_quadlet(digi, 0xffffe0000100ULL, 0x00000000); // ??
+        write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
+
+        isoctrl = 0x00000001;
+        write_quadlet(digi, 0xffffe0000004ULL, isoctrl);   // start streaming
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000001 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        }
+        
+        read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
+
+        write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
+        write_quadlet(digi, 0xffffe0000124ULL, 0x00000000);   // start control
+
+
+
 	/* No monitoring of inputs */
-	
+/*	
 	write_quadlet(digi, R003_MIX_ANALOG_1L, R003_MIX_NONE); 
 	write_quadlet(digi, R003_MIX_ANALOG_1R, R003_MIX_NONE); 
 	write_quadlet(digi, R003_MIX_ANALOG_2L, R003_MIX_NONE); 
@@ -305,14 +431,42 @@ static void rack_init(struct digi *digi)
 	write_quadlet(digi, R003_MIX_ADAT_7R, R003_MIX_NONE);
 	write_quadlet(digi, R003_MIX_ADAT_8L, R003_MIX_NONE);
 	write_quadlet(digi, R003_MIX_ADAT_8R, R003_MIX_NONE);
-
+*/
 }
 
 static void rack_shutdown(struct digi *digi)
 {       
-        write_quadlet(digi, 0xffffe0000004ULL, 0x00000003);   // shutdown streams       
         unsigned int isoctrl;
-        int ct = 0;
+	int ct;
+
+	write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control      
+
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);   // stop streams       
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000000 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+	}
+	
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streams       
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000001 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+	}
+
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);   // stop streams       
+        ct = 0;
+        isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+        while (isoctrl != 0x00000000 && ct < 1024) {
+                ct++;
+                isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
+	}
+
+	write_quadlet(digi, 0xffffe0000004ULL, 0x00000003);   // shutdown streams       
+        ct = 0;
         isoctrl = read_quadlet(digi, 0xffffe0000000ULL);
         while (isoctrl != 0x00000003 && ct < 1024) {
                 ct++;
@@ -586,6 +740,8 @@ static void digi_free_resources(struct digi *digi)
 				   rx_address(digi, i, RX_ISOCHRONOUS),
 				   &channel, 4, 0);
 */
+	rack_shutdown(digi);
+
 	fw_iso_resources_free(&digi->rx_resources);
 }
 
@@ -679,8 +835,6 @@ static void digi_stop_packet_streaming(struct digi *digi)
 static void digi_stop_streaming(struct digi *digi)
 {
 	digi_stop_packet_streaming(digi);
-
-	rack_shutdown(digi);
 
 	if (digi->rx_resources.allocated)
 		digi_free_resources(digi);
@@ -799,6 +953,7 @@ static int digi_hw_free(struct snd_pcm_substream *substream)
 
 	mutex_lock(&digi->mutex);
 	digi_stop_streaming(digi);
+
 	mutex_unlock(&digi->mutex);
 
 	return snd_pcm_lib_free_vmalloc_buffer(substream);
@@ -1674,6 +1829,7 @@ static int __devexit digi_remove(struct device *dev)
 	mutex_lock(&digi->mutex);
 
 	digi_stop_streaming(digi);
+
 	digi_owner_clear(digi);
 
 	mutex_unlock(&digi->mutex);
@@ -1701,8 +1857,6 @@ static void digi_bus_reset(struct fw_unit *unit)
 
 	digi->global_enabled = false;
 	digi_stop_packet_streaming(digi);
-	
-	rack_shutdown(digi);
 	
 	digi_owner_update(digi);
 
