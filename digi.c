@@ -162,7 +162,8 @@ static inline u64 rx_address(struct digi *digi,
         return R003_HARDWARE_ADDR; //+ offset;//+ digi->rx_offset +
                         //index * digi->rx_size + offset;
 }
-/*  
+
+#if 0
 static inline u64 global_address(struct digi *digi, unsigned int offset)
 {       
         return R003_HARDWARE_ADDR + offset;
@@ -173,7 +174,8 @@ static inline u64 rx_address(struct digi *digi, unsigned int offset)
 {
         return R003_HARDWARE_ADDR + offset;
 }
-*/
+#endif
+
 void write_quadlet(struct digi *digi, unsigned long long int reg, unsigned int data)
 {
         data = BYTESWAP32_CONST(data);
@@ -248,11 +250,11 @@ static int rack_init(struct digi *digi)
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
         
-        write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
+        write_quadlet(digi, 0xffffe0000110ULL, 0x00000000); // set samplerate?
 
 	rack_init_write_814_block(digi);
 
-        write_quadlet(digi, 0xffffe0000110ULL, 0x00000001);// set samplerate?
+        write_quadlet(digi, 0xffffe0000110ULL, 0x00000001); // set samplerate?
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000000); // ??
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
 
@@ -261,10 +263,10 @@ static int rack_init(struct digi *digi)
         
         write_quadlet(digi, 0xffffe0000118ULL, 0x00000000); // set clocksrc
 
-        write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streaming
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000001); // start streaming
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
 
-        read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
+        read_quadlet(digi, 0xffffe0000118ULL); // reset clock
 
 	write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
@@ -274,7 +276,7 @@ static int rack_init(struct digi *digi)
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000001); // start streaming
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
 
-	read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
+	read_quadlet(digi, 0xffffe0000118ULL); // reset clock
 
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
@@ -285,21 +287,21 @@ static int rack_init(struct digi *digi)
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
         
-	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
+	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000); // set samplerate?
 
 	rack_init_write_814_block(digi);
 
-        write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
+        write_quadlet(digi, 0xffffe0000110ULL, 0x00000000); // set samplerate?
 
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000000); // ??
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
 
-        write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streaming
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000001); // start streaming
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
 
-        read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
+        read_quadlet(digi, 0xffffe0000118ULL); // reset clock
 
-        write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
+        write_quadlet(digi, 0xffffe0000124ULL, 0x00000001); // stop control
 
 	write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
@@ -310,24 +312,24 @@ static int rack_init(struct digi *digi)
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000002);
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000000)) return -1;
 
-	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000);// set samplerate?
+	write_quadlet(digi, 0xffffe0000110ULL, 0x00000000); // set samplerate?
 
 	rack_init_write_814_block(digi);
 
-        write_quadlet(digi, 0xffffe0000110ULL, 0x00000001);// set samplerate?
+        write_quadlet(digi, 0xffffe0000110ULL, 0x00000001); // set samplerate?
 
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000000); // ??
         write_quadlet(digi, 0xffffe0000100ULL, 0x00000001); // ??
 
-        write_quadlet(digi, 0xffffe0000004ULL, 0x00000001);   // start streaming
+        write_quadlet(digi, 0xffffe0000004ULL, 0x00000001); // start streaming
 	if (poll_until(digi, 0xffffe0000000ULL, 0x00000001)) return -1;
 
-        read_quadlet(digi, 0xffffe0000118ULL);  // reset clock
+        read_quadlet(digi, 0xffffe0000118ULL); // reset clock
 
-        write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
+        write_quadlet(digi, 0xffffe0000124ULL, 0x00000001); // stop control
 
 #if 0
-        //write_quadlet(digi, 0xffffe0000124ULL, 0x00000000);   // start control
+        //write_quadlet(digi, 0xffffe0000124ULL, 0x00000000); // start control
 	/* No monitoring of inputs */
 
 	write_quadlet(digi, R003_MIX_ANALOG_1L, R003_MIX_NONE); 
@@ -372,7 +374,9 @@ static int rack_init(struct digi *digi)
 
 static void rack_shutdown(struct digi *digi)
 {       
-	//write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
+#if 0
+	write_quadlet(digi, 0xffffe0000124ULL, 0x00000001);   // stop control
+#endif
         write_quadlet(digi, 0xffffe0000004ULL, 0x00000000);   // stop streams       
 	poll_until(digi, 0xffffe0000000ULL, 0x00000000);
 
@@ -648,11 +652,12 @@ static void digi_free_resources(struct digi *digi)
 	__be32 channel;
 
 	channel = cpu_to_be32((u32)-1);
+#if 0
 	for (i = 0; i < digi->rx_count[digi->current_mode]; ++i)
-/*		snd_fw_transaction(digi->unit, TCODE_WRITE_QUADLET_REQUEST,
+		snd_fw_transaction(digi->unit, TCODE_WRITE_QUADLET_REQUEST,
 				   rx_address(digi, i, RX_ISOCHRONOUS),
 				   &channel, 4, 0);
-*/
+#endif
 	rack_shutdown(digi);
 
 	fw_iso_resources_free(&digi->rx_resources);
@@ -677,12 +682,14 @@ static int digi_allocate_resources(struct digi *digi)
 	seq_start = 0;
 	for (i = 0; i < digi->rx_count[digi->current_mode]; ++i) {
 		values[1] = cpu_to_be32(seq_start);
-/*		err = snd_fw_transaction(digi->unit,
+#if 0
+		err = snd_fw_transaction(digi->unit,
 					 TCODE_WRITE_BLOCK_REQUEST,
 					 rx_address(digi, i, RX_ISOCHRONOUS),
 					 values, 2 * 4, 0);
-*/
+#else
 		err = 0;
+#endif
 		if (err < 0) {
 			digi_free_resources(digi);
 			return err;
@@ -758,7 +765,8 @@ static void digi_stop_streaming(struct digi *digi)
 
 static int digi_change_rate(struct digi *digi, unsigned int clock_rate)
 {
-/*	__be32 value;
+#if 0
+	__be32 value;
 	int err;
 
 	INIT_COMPLETION(digi->clock_accepted);
@@ -775,7 +783,7 @@ static int digi_change_rate(struct digi *digi, unsigned int clock_rate)
 	if (!wait_for_completion_timeout(&digi->clock_accepted,
 					 msecs_to_jiffies(100)))
 		dev_warn(&digi->unit->device, "clock change timed out\n");
-*/
+#endif
 	return 0;
 }
 
@@ -805,9 +813,11 @@ static int digi_hw_params(struct snd_pcm_substream *substream,
 	digi->current_mode = mode;
 
 	midi_data_channels = 1;
-/*	for (rx = 0; rx < digi->rx_count[mode]; ++rx)
+#if 0
+	for (rx = 0; rx < digi->rx_count[mode]; ++rx)
 		midi_data_channels += digi->rx[rx].midi_ports[mode] > 0;
-*/	amdtp_stream_set_parameters(&digi->rx_stream,
+#endif
+	amdtp_stream_set_parameters(&digi->rx_stream,
 				    params_rate(hw_params),
 				    params_channels(hw_params),
 				    midi_data_channels);
@@ -839,7 +849,7 @@ static int digi_hw_params(struct snd_pcm_substream *substream,
 	digi->rx_stream.pcm_quadlets[16] = 17;
 	digi->rx_stream.pcm_quadlets[17] = 18;
 
-/*
+#if 0
 	//digi->rx_stream.midi_quadlets[0] = 0;
 	digi->rx_stream.pcm_quadlets[0] = 0;
 	digi->rx_stream.pcm_quadlets[1] = 1;
@@ -859,7 +869,7 @@ static int digi_hw_params(struct snd_pcm_substream *substream,
 	digi->rx_stream.pcm_quadlets[15] = 15;
 	digi->rx_stream.pcm_quadlets[16] = 16;
 	digi->rx_stream.pcm_quadlets[17] = 17;
-*/
+#endif
 	return 0;
 }
 
@@ -1136,11 +1146,11 @@ static int digi_proc_read_mem(struct digi *digi, void *buffer,
 {
 	unsigned int i;
 	int err;
-
-/*	err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
+#if 0
+	err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
 				 DICE_PRIVATE_SPACE + 4 * offset_q,
 				 buffer, 4 * quadlets, 0);
-*/
+#endif
 	err = 0;
 	if (err < 0)
 		return err;
@@ -1432,15 +1442,17 @@ static int __devinit digi_interface_check(struct fw_unit *unit)
 	    device->config_rom[4] >> 22 != model)
 		return -ENODEV;
 
+#if 0
 	/*
 	 * Check that the sub address spaces exist and are located inside the
 	 * private address space.  The minimum values are chosen so that all
 	 * minimally required registers are included.
 	 */
-/*	err = snd_fw_transaction(unit, TCODE_READ_BLOCK_REQUEST,
+	err = snd_fw_transaction(unit, TCODE_READ_BLOCK_REQUEST,
 				 DICE_PRIVATE_SPACE,
 				 pointers, sizeof(pointers), 0);
-*/
+#endif
+
 	err = 0;
 	if (err < 0)
 		return -ENODEV;
@@ -1500,11 +1512,11 @@ static int __devinit digi_read_mode_params(struct digi *digi, unsigned int mode)
 	err = digi_change_rate(digi, rate_index << CLOCK_RATE_SHIFT);
 	if (err < 0)
 		return err;
-
-/*	err = snd_fw_transaction(digi->unit, TCODE_READ_QUADLET_REQUEST,
+#if 0
+	err = snd_fw_transaction(digi->unit, TCODE_READ_QUADLET_REQUEST,
 				 rx_address(digi, 0, RX_NUMBER),
 				 values, 4, 0);
-*/
+#endif
 	err = 0;
 	if (err < 0)
 		return err;
@@ -1517,16 +1529,19 @@ static int __devinit digi_read_mode_params(struct digi *digi, unsigned int mode)
 
 	digi->rx_channels[mode] = 0;
 	for (i = 0; i < digi->rx_count[mode]; ++i) {
-/*		err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
+#if 0
+		err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
 					 rx_address(digi, i, RX_NUMBER_AUDIO),
 					 values, 2 * 4, 0);
-*/
+#else
 		err = 0;
+#endif
 		if (err < 0)
 			return err;
 		digi->rx[i].pcm_channels[mode] = 18; //be32_to_cpu(values[0]);
 		digi->rx[i].midi_ports[mode]   = 1; //be32_to_cpu(values[1]);
-/*		if (digi->rx[i].pcm_channels[mode] > (mode < 2 ? 16 : 8) &&
+#if 0
+		if (digi->rx[i].pcm_channels[mode] > (mode < 2 ? 16 : 8) &&
 		    (digi->vendor != OUI_MAUDIO || i > 0)) {
 			dev_err(&digi->unit->device,
 				"rx%u(%u): #PCM = %u: too large\n",
@@ -1539,7 +1554,7 @@ static int __devinit digi_read_mode_params(struct digi *digi, unsigned int mode)
 				i, mode, digi->rx[i].midi_ports[mode]);
 			return -ENXIO;
 		}
-*/
+#endif
 		digi->rx_channels[mode] += digi->rx[i].pcm_channels[mode];
 	}
 
@@ -1558,21 +1573,22 @@ static int __devinit digi_read_params(struct digi *digi)
 	__be32 pointers[6];
 	__be32 value;
 	int mode, err;
-
-/*	err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
+#if 0
+	err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
 				 DICE_PRIVATE_SPACE,
 				 pointers, sizeof(pointers), 0);
-*/
+#endif
 	err = 0;
 	if (err < 0)
 		return err;
 	digi->global_offset = 0;//be32_to_cpu(pointers[0]) * 4;
 	digi->rx_offset = 0;//be32_to_cpu(pointers[4]) * 4;
 
-/*	err = snd_fw_transaction(digi->unit, TCODE_READ_QUADLET_REQUEST,
+#if 0
+	err = snd_fw_transaction(digi->unit, TCODE_READ_QUADLET_REQUEST,
 				 rx_address(digi, 0, RX_SIZE),
 				 &value, 4, 0);
-*/
+#endif
 	err = 0;
 	if (err < 0)
 		return err;
@@ -1605,10 +1621,11 @@ static void __devinit digi_card_strings(struct digi *digi)
 
 	strcpy(card->shortname, "003R");
 	BUILD_BUG_ON(NICK_NAME_SIZE < sizeof(card->shortname));
-/*	err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
+#if 0
+	err = snd_fw_transaction(digi->unit, TCODE_READ_BLOCK_REQUEST,
 				 global_address(digi, GLOBAL_NICK_NAME),
 				 card->shortname, sizeof(card->shortname), 0);
-*/
+#endif
 	err = 0;
 	if (err >= 0) {
 		/* DICE strings are returned in "always-wrong" endianness */
@@ -1680,13 +1697,15 @@ static int __devinit digi_probe(struct device *unit_dev)
 	err = amdtp_stream_init(&digi->rx_stream, unit, CIP_NONBLOCKING);
 	if (err < 0)
 		goto err_resources;
-//	if (vendor != OUI_MAUDIO)
-//		digi->rx_stream.flags |= CIP_HI_DUALWIRE;
+#if 0
+	if (vendor != OUI_MAUDIO)
+		digi->rx_stream.flags |= CIP_HI_DUALWIRE;
+#endif
 
 	card->private_free = digi_card_free;
 
 	digi_card_strings(digi);
-/*
+#if 0
 	err = snd_fw_transaction(unit, TCODE_READ_QUADLET_REQUEST,
 				 global_address(digi, GLOBAL_CLOCK_SELECT),
 				 &clock_sel, 4, 0);
@@ -1697,7 +1716,7 @@ static int __devinit digi_probe(struct device *unit_dev)
 	err = snd_fw_transaction(unit, TCODE_WRITE_QUADLET_REQUEST,
 				 global_address(digi, GLOBAL_CLOCK_SELECT),
 				 &clock_sel, 4, 0);
-*/
+#endif
 	err = 0;
 	if (err < 0)
 		goto error;
